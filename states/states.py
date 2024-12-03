@@ -2,6 +2,10 @@ from aiogram.fsm.state import State, StatesGroup
 
 class SearchPaginator(StatesGroup):
     START = State()
+    PRODUCT = State()
+
+class SearchProduct(StatesGroup):
+    START = State()
 
 class Product(StatesGroup):
     START = State()

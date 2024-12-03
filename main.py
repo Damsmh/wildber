@@ -13,6 +13,7 @@ async def main():
 
     dp.include_router(user_handlers.router)
     dp.include_router(dialog.paginator)
+    dp.include_router(dialog.product)
     dp.include_router(dialog.router)
     setup_dialogs(dp)
 

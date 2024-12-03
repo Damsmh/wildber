@@ -4,10 +4,14 @@ class Parser:
         
     def format_query_items(self, products_raw):
         products = []
-        products.append({'count': len(products_raw)})
+        products.append({'count': 20})
         if products_raw != None and len(products_raw) > 0:
             for product in products_raw:
+                if len(products) == 20:
+                    break
                 id = product.get('id', None)
+                res = self.get_product_types(id)
+                types = self.format_article_item(res)
                 vol = id // 100_000
                 host = self.get_host(vol) 
                 products.append({'id': id,
@@ -18,25 +22,33 @@ class Parser:
                                  'feedbacks': product.get('feedbacks', None),
                                  'link': f'https://www.wildberries.ru/catalog/{id}/detail.aspx',
                                  'price': int(product.get('sizes', None)[0].get('price', None).get('product'))/100,
-                                 'types': self.get_product_types(id),
+                                 'types': types,
                 })
         return products
     
     def format_article_item(self, product_raw):
-        id = product_raw.get('id', None)
-        vol = id // 100_000
-        host = self.get_host(vol)
-        product = {'id': id,
-                   'preview': f'https://basket-{host}.wbbasket.ru/vol{vol}/part{id // 1_000}/{id}/images/big/1.webp',
-                   'name': product_raw.get('name', None),
-                   'color': product_raw.get('colors', None)[0]['name'],
-                   'brand': product_raw.get('brand', None),
-                   'reviewRating': product_raw.get('reviewRating', None),
-                   'feedbacks': product_raw.get('feedbacks', None),
-                   'link': f'https://www.wildberries.ru/catalog/{id}/detail.aspx',
-                   'price': int(product_raw.get('sizes', None)[0].get('price', None).get('product'))/100,
-        }
-        return product
+        types = None
+        if product_raw != None:
+            types = []
+            if len(product_raw) > 0:
+                for product in product_raw:
+                    id = product.get('id', None)
+                    vol = id // 100_000
+                    host = self.get_host(vol) 
+                    try:
+                        price = int(product.get('sizes', None)[0].get('price', None).get('product'))/100
+                    except:
+                        price = 0
+                    types.append({'id': id,
+                                  'preview': f'https://basket-{host}.wbbasket.ru/vol{vol}/part{id // 1_000}/{id}/images/big/1.webp',
+                                  'name': product.get('name', None), 
+                                  'brand': product.get('brand', None),
+                                  'reviewRating': product.get('reviewRating', None),
+                                  'feedbacks': product.get('feedbacks', None),
+                                  'link': f'https://www.wildberries.ru/catalog/{id}/detail.aspx',
+                                  'price': price,
+                    })
+        return types
     
     def get_host(self, vol: int):
         host = ''
@@ -60,25 +72,16 @@ class Parser:
         else: host = '18'
         return host
     
-    def get_name_by_article(self, article: int):
-        url = f"https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1255987&spp=30&ab_testing=false&nm={article}"
-        response = requests.get(url, impersonate="chrome").json()
-        name = response.get('data', {}).get('products', None)
-        print(name)
-        return name
-    
     def get_product_types(self, article: int):
         id = article
         vol = id // 100_000
         host = self.get_host(vol)
-        types_url = f'https://basket-{host}.wbbasket.ru/vol{vol}/part{id // 1_000}/{id}/info/ru/card.json'
-        types_response = requests.get(types_url, impersonate='chrome').json().get('colors', None)
-        types = [{
-            'id': s_id,
-            'type_id': types_response[s_id],
-            'name': self.get_name_by_article(types_response[s_id]),
-        } for s_id in range(len(types_response))]
-        return types
+        url_colors = f'https://basket-{host}.wbbasket.ru/vol{vol}/part{id // 1_000}/{id}/info/ru/card.json'
+        colors = requests.get(url_colors, impersonate='chrome').json().get('colors', None)
+        url = f"https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1255987&spp=30&ab_testing=false&nm={';'.join(map(str, colors))}"
+        response = requests.get(url, impersonate="chrome").json()
+        product_raw = response.get('data', {}).get('products', None)
+        return product_raw
             
     def get_search_products(self, query: str):
         url = f"https://search.wb.ru/exactmatch/ru/common/v7/search?ab_testing=false&appType=1&curr=rub&dest=-1255987&query={'%20'.join(query.split())}&resultset=catalog&sort=popular&spp=30&suppressSpellcheck=false"
@@ -86,7 +89,7 @@ class Parser:
         products_raw = response.get('data', {}).get('products', None)
         return products_raw
 
-    def get_article_product(self, article: int):
+    def get_article_product(self, article: str):
         url = f"https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-1255987&spp=30&ab_testing=false&nm={article}"
         response = requests.get(url, impersonate="chrome").json()
         product_raw = response.get('data', {}).get('products', None)

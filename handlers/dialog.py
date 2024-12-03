@@ -1,3 +1,4 @@
+import operator
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 from aiogram.filters import StateFilter
@@ -5,12 +6,12 @@ from aiogram.types import Message, CallbackQuery, ContentType
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.media import StaticMedia
 from aiogram_dialog.widgets.text import Format, Const
-from aiogram_dialog.widgets.kbd import Button, Row, Url, ListGroup, Back
+from aiogram_dialog.widgets.kbd import Button, Row, Url, Back, Cancel, Column, Select
 from aiogram_dialog.widgets.common import WhenCondition
 
 from parser.parser import parser
 
-from states.states import SearchPaginator, Search, Registration, Product
+from states.states import SearchPaginator, Search, Registration, Product, SearchProduct
 
 NEXT_page_BTN_ID = "next"
 PREVIOUS_page_BTN_ID = "previous"
@@ -20,23 +21,39 @@ USER_DATA = {}
 
 router = Router()
 
-@router.message(StateFilter(Registration.logged), (F.text == 'Искать товары'))
-async def start_search(message: Message, state: FSMContext):
+@router.message(StateFilter(Registration.logged), F.text == 'Искать товары')
+async def start_search_query(message: Message, state: FSMContext):
     await state.set_state(Search.START)
     USER_DATA[message.from_user.id] = {}
     USER_DATA[message.from_user.id]['page'] = 1
     await message.answer('Напишите название товара')
 
-@router.message(StateFilter(Registration.logged), F.text == 'Артикул')
-async def start_search_article(message: Message, manager: DialogManager, state: FSMContext, dialog_manager: DialogManager):
+@router.message(StateFilter(SearchPaginator.START, SearchProduct.START), F.text == 'Искать товары')
+async def continue_search_query(message: Message, state: FSMContext, manager: DialogManager):
+    await manager.switch_to(Product.START)
+    USER_DATA[message.from_user.id] = {}
+    USER_DATA[message.from_user.id]['page'] = 1
+    await message.answer('Напишите название товара')
+
+@router.message(StateFilter(SearchPaginator.START, SearchProduct.START), F.text == 'Поиск по артикулу')
+async def continue_search_article(message: Message, state: FSMContext, manager: DialogManager):
+    await manager.switch_to(Product.START)
+    await message.answer('Напишите Артикул')
     if message.from_user.id in USER_DATA:
-        USER_DATA[message.from_user.id]['type'] = parser.search_article(message.text)
-        await dialog_manager.start(Product.START)
+        USER_DATA[message.from_user.id]['product'] = {}
     else:
         USER_DATA[message.from_user.id] = {}
-        USER_DATA[message.from_user.id]['type'] = parser.search_article(message.text)
-        await dialog_manager.start(Product.START)
+        USER_DATA[message.from_user.id]['product'] = {}
 
+@router.message(StateFilter(Registration.logged), F.text == 'Поиск по артикулу')
+async def start_search_article(message: Message, state: FSMContext):
+    await message.answer('Напишите Артикул')
+    await state.set_state(Product.START)
+    if message.from_user.id in USER_DATA:
+        USER_DATA[message.from_user.id]['product'] = {}
+    else:
+        USER_DATA[message.from_user.id] = {}
+        USER_DATA[message.from_user.id]['product'] = {}
 
 @router.message(Search.START)
 async def start_s(message: Message, dialog_manager: DialogManager):
@@ -44,8 +61,17 @@ async def start_s(message: Message, dialog_manager: DialogManager):
     await dialog_manager.start(SearchPaginator.START)
 
 @router.message(Product.START)
-async def start_a(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    USER_DATA[callback.from_user.id]['type'] = parser.search_article(button.callback_prefix()[:-1])
+async def start_a(message: Message, dialog_manager: DialogManager):
+    if message.text.isdigit():
+        search = parser.search_article(int(message.text))[0]
+        if len(search) != 0:
+            USER_DATA[message.from_user.id]['product'] = search
+            await dialog_manager.start(SearchProduct.START)
+        else:
+            await message.answer('Товара с таким артикулом не найдено!')
+    else:
+        await message.answer('Товара с таким артикулом не найдено!')
+    
 
 
 async def page_select(callback: CallbackQuery, button: Button, manager: DialogManager):
@@ -70,12 +96,21 @@ async def search_getter(**kwargs):
             'feedbacks': product[page]['feedbacks'],
             'price': product[page]['price'],
             'rating': product[page]['reviewRating'],
-            'types': product[page]['types']
+            'types': product[page]['types'],
             }
+
+async def product_window(callback: CallbackQuery, button: Button, manager: DialogManager, **kwargs):
+    user_id = callback.from_user.id
+    page = USER_DATA[user_id]['page']
+    product_id = button.callback_prefix()[:-1]
+    products = USER_DATA[user_id]['products'][page]['types']
+    result = list(filter(lambda v: v["id"]==product_id, products.values()))[0]
+    USER_DATA[user_id]['product'] = result
+    manager.start(SearchPaginator.PRODUCT)
 
 async def product_getter(**kwargs):
     user_id = kwargs['event_from_user'].id
-    product = USER_DATA[user_id]['type']
+    product = USER_DATA[user_id]['product']
     return {'id': product['id'],
             'preview': product['preview'],
             'name': product['name'],
@@ -99,36 +134,63 @@ paginator = Dialog(
         ),
         Row(
             Button(
-            Const("<"),
-            id=PREVIOUS_page_BTN_ID,
-            on_click=page_select,
+                Const("<"),
+                id=PREVIOUS_page_BTN_ID,
+                on_click=page_select,
             ),
             Button(
                 Format('Товар {page_str}'),
-                id=None,
+                id='',
             ),
             Button(
-            Const(">"),
-            id=NEXT_page_BTN_ID,
-            on_click=page_select,
+                Const(">"),
+                id=NEXT_page_BTN_ID,
+                on_click=page_select,
             ),
         ),
-        Const('Выберите вид товара:'),
-        ListGroup(
-            Button(
+        Select(
+            Column(
             Format("{item[name]}"),
-            id="button",
-            ),
-            id="select_search",
-            item_id_getter=lambda item: item["id"],
+        ),
+            id="s_item",
+            item_id_getter=lambda item: item['id'],
             items="types",
+            on_click=product_window,
         ),
         Url(
-            Const("Открыть в Wildberries"),
-            Format('{link}'),
+            text=Const("Открыть в Wildberries"),
+            url=Format('{link}'),
+            id='link'
         ),
+        Cancel(Const("Закрыть")),
         state=SearchPaginator.START,
         getter=search_getter
+    ),
+    Window(
+        StaticMedia(
+            url=Format('{preview}'),
+            type=ContentType.PHOTO,
+        ),
+        Format('''Название: {name} 
+Артикул: {id}
+Бренд: {brand}      Рейтинг: {rating}   
+Отзывов: {feedbacks}      Цена: {price} Р'''
+        ),
+        Row(
+            Button(
+            Const('Отслеживать'),
+            id='add_fav',
+            ),
+            Button(
+                Const('Перестать отслеживать'),
+                id='remove_fav',
+            ),
+            Back(
+                Const('Назад'),
+            ),
+        ),
+        state=SearchPaginator.PRODUCT,
+        getter=product_getter
     )
 )
 
@@ -143,10 +205,6 @@ product = Dialog (
 Бренд: {brand}      Рейтинг: {rating}   
 Отзывов: {feedbacks}      Цена: {price} Р'''
         ),
-        Back(
-            Const('Назад'),
-            id='back',
-        ),
         Button(
             Const('Отслеживать'),
             id='add_fav',
@@ -155,7 +213,8 @@ product = Dialog (
             Const('Перестать отслеживать'),
             id='remove_fav',
         ),
-        state=Product.START,
+        Cancel(Const("Закрыть")),
+        state=SearchProduct.START,
         getter=product_getter
     )
 )

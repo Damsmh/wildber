@@ -16,7 +16,7 @@ router = Router()
 async def process_start_command(message: Message, state: FSMContext):
     if UserInBase(TG=message.from_user.id):
         await state.set_state(Registration.logged)
-        await message.answer(reply_markup=keyboard_logged)
+        await message.answer(text='Привет! Я помогу тебе с анализом цены товара на Wildberries', reply_markup=keyboard_logged)
     else:
         await state.set_state(Registration.not_logged)
         await message.answer(text='Привет! Я помогу тебе с анализом цены товара на Wildberries', reply_markup=keyboard)
