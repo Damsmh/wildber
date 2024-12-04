@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, Column, ForeignKeyConstraint, create_engine
-from sqlalchemy import String, Integer, Float
+from sqlalchemy import String, Integer, Float, BigInteger
 from sqlalchemy.orm import DeclarativeBase, Session
 from config_data.config import Config, load_config
 
@@ -10,8 +10,8 @@ class User(Base):
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True)
-    username = Column(String())
-    user_id = Column(Integer, unique=True)
+    username = Column(String)
+    user_id = Column(BigInteger, unique=True)
 
     def __repr__(self) -> str:
         return f"User(id={self.id!r}, username={self.username!r}, user_id={self.user_id!r})"
@@ -19,10 +19,11 @@ class User(Base):
 class Product(Base):
     __tablename__ = "product"
     id = Column(Integer, primary_key=True)
-    product_id = Column(Integer, unique=True)
-    brand = Column(String())
-    name = Column(String())
+    product_id = Column(BigInteger, unique=True)
+    brand = Column(String)
+    name = Column(String)
     reviewRating = Column(Float)
+    link = Column(String)
     feedbacks = Column(Integer)
     price = Column(Integer)
 
@@ -32,8 +33,8 @@ class Product(Base):
 class Favourite(Base):
     __tablename__ = "favorites_product"
     id = Column(Integer, primary_key=True)
-    product_id = Column(Integer, ForeignKey('product.product_id'))
-    user_id = Column(Integer, ForeignKey('user.user_id'))
+    product_id = Column(BigInteger, ForeignKey('product.product_id'))
+    user_id = Column(BigInteger, ForeignKey('user.user_id'))
     
 
     def __repr__(self) -> str:

@@ -1,5 +1,5 @@
 import asyncio
-from aiogram import Bot, Dispatcher, Router
+from aiogram import Bot, Dispatcher
 from aiogram_dialog import setup_dialogs
 from config_data.config import Config, load_config
 from handlers import user_handlers, dialog
