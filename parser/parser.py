@@ -10,8 +10,6 @@ class Parser:
                 if len(products) == 20:
                     break
                 id = product.get('id', None)
-                res = self.get_product_types(id)
-                types = self.format_article_item(res)
                 vol = id // 100_000
                 host = self.get_host(vol) 
                 products.append({'id': id,
@@ -22,7 +20,6 @@ class Parser:
                                  'feedbacks': product.get('feedbacks', None),
                                  'link': f'https://www.wildberries.ru/catalog/{id}/detail.aspx',
                                  'price': int(product.get('sizes', None)[0].get('price', None).get('product'))/100,
-                                 'types': types,
                 })
         return products
     
@@ -98,8 +95,11 @@ class Parser:
     def search_query(self, query):
         response = self.get_search_products(query)
         return self.format_query_items(response)
+    def search_product_types(self, article):
+        response = self.get_product_types(article)
+        return self.format_article_item(response)
     def search_article(self, article):
         response = self.get_article_product(article)
         return self.format_article_item(response)
         
-parser = Parser()
+

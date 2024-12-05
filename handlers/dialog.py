@@ -6,15 +6,16 @@ from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.media import StaticMedia
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.kbd import Button, Row, Url, Back, Cancel, ListGroup
-from aiogram_dialog.widgets.common import WhenCondition, Whenable
+from aiogram_dialog.widgets.common import Whenable
 from typing import *
 
-from parser.parser import parser
+from parser.parser import Parser
 
 from states.states import SearchPaginator, Search, Registration, Product, SearchProduct
 
 from db.functions import ProductInFavourite, ProductInBase, AddProduct, AddFavourite, DeleteFavourite
 
+parser = Parser()
 NEXT_page_BTN_ID = "next"
 PREVIOUS_page_BTN_ID = "previous"
 USER_DATA = {}
@@ -102,13 +103,26 @@ async def del_fav(callback: CallbackQuery, button: Button, manager: DialogManage
     except:
         print('fail to add fav!')
 
+async def get_vars(callback: CallbackQuery, button: Button, manager: DialogManager):
+    uid = callback.from_user.id
+    page = USER_DATA[uid]['page']
+    product_id = USER_DATA[uid]['products'][page]['id']
+    types = parser.search_product_types(product_id)
+    USER_DATA[uid]['products'][page]['types'] = types
 
-async def in_fav(data: Dict, widget: Whenable, manager: DialogManager):
+def have_types(data: Dict, widget: Whenable, manager: DialogManager):
+    product_id = data.get('id')
+    user_id = data.get('user_id')
+    page = data.get('page')
+    return 'types' in USER_DATA[user_id]['products'][page]
+
+
+def in_fav(data: Dict, widget: Whenable, manager: DialogManager):
     product_id = data.get('id')
     user_id = data.get('user_id')
     return ProductInFavourite(product_id=product_id, user_id=user_id) != []
 
-async def not_in_fav(data: Dict, widget: Whenable, manager: DialogManager):
+def not_in_fav(data: Dict, widget: Whenable, manager: DialogManager):
     product_id = data.get('id')
     user_id = data.get('user_id')
     return ProductInFavourite(product_id=product_id, user_id=user_id) == []
@@ -125,20 +139,22 @@ async def search_getter(**kwargs):
     user_id = kwargs['event_from_user'].id
     page = USER_DATA[user_id]['page']
     product = USER_DATA[user_id]['products']
-    return {'count': product[0]['count'],
-            'id':  product[page]['id'],
-            'page_str': f'{page}/{product[0]["count"]}',
-            'preview': product[page]['preview'],
-            'name': product[page]['name'],
-            'link': product[page]['link'],
-            'brand': product[page]['brand'],
-            'feedbacks': product[page]['feedbacks'],
-            'price': product[page]['price'],
-            'rating': product[page]['reviewRating'],
-            'types': product[page]['types'],
-            'product': product[page],
-            'user_id': user_id,
-            }
+    res_dict = {'count': product[0]['count'],
+                'id':  product[page]['id'],
+                'page_str': f'{page}/{product[0]["count"]}',
+                'page': page,
+                'preview': product[page]['preview'],
+                'name': product[page]['name'],
+                'link': product[page]['link'],
+                'brand': product[page]['brand'],
+                'feedbacks': product[page]['feedbacks'],
+                'price': product[page]['price'],
+                'rating': product[page]['reviewRating'],
+                'product': product[page],
+                'user_id': user_id,
+                }
+    if 'types' in product[page]: res_dict['types'] = product[page]['types']
+    return res_dict
 
 async def product_getter(**kwargs):
     user_id = kwargs['event_from_user'].id
@@ -182,6 +198,11 @@ paginator = Dialog(
                 on_click=page_select,
             ),
         ),
+        Button(
+                Const("Посмотреть все виды"),
+                id='get_vars',
+                on_click=get_vars,
+            ),
         ListGroup(
             Button(
                 Format("{item[name]}"),
@@ -191,6 +212,7 @@ paginator = Dialog(
             id="s_item",
             item_id_getter=lambda item: item["id"],
             items="types",
+            when=have_types
         ),
         Url(
             text=Const("Открыть в Wildberries"),

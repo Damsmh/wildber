@@ -4,7 +4,6 @@ from aiogram_dialog import setup_dialogs
 from config_data.config import Config, load_config
 from handlers import user_handlers, dialog
 
-
 async def main():
     config: Config = load_config()
 

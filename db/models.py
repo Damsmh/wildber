@@ -1,6 +1,6 @@
 from sqlalchemy import ForeignKey, Column, ForeignKeyConstraint, create_engine
 from sqlalchemy import String, Integer, Float, BigInteger
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.orm import DeclarativeBase, Session, relationship
 from config_data.config import Config, load_config
 
 class Base(DeclarativeBase):
@@ -35,6 +35,8 @@ class Favourite(Base):
     id = Column(Integer, primary_key=True)
     product_id = Column(BigInteger, ForeignKey('product.product_id'))
     user_id = Column(BigInteger, ForeignKey('user.user_id'))
+    product = relationship(Product, cascade = "all,delete", backref = "children")
+    user = relationship(User, cascade = "all,delete", backref = "children")
     
 
     def __repr__(self) -> str:
