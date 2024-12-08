@@ -16,3 +16,8 @@ class Search(StatesGroup):
 class Registration(StatesGroup):
     logged = State()
     not_logged = State()
+
+class AdminTab(StatesGroup):
+    admin = State()
+    ban = State()
+    unban = State()

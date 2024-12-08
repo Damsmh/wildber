@@ -2,7 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram_dialog import setup_dialogs
 from config_data.config import Config, load_config
-from handlers import user_handlers, dialog
+from handlers import user_handlers, dialog, admin_handlers
 
 async def main():
     config: Config = load_config()
@@ -11,6 +11,7 @@ async def main():
     dp = Dispatcher()
 
     dp.include_router(user_handlers.router)
+    dp.include_router(admin_handlers.admin_router)
     dp.include_router(dialog.paginator)
     dp.include_router(dialog.product)
     dp.include_router(dialog.router)

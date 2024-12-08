@@ -4,13 +4,17 @@ from aiogram.filters.callback_data import CallbackData, CallbackQuery
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
-from keyboards.keyboard import keyboard, keyboard_logged
+from keyboards.keyboard import keyboard, keyboard_logged, adm_keyboard
 from db.functions import UserInBase, GetId, AddUser, DeleteUser
 from db.models import session, User, Product
 
-from states.states import Registration, Product, Search, SearchPaginator, SearchProduct
+from states.states import Registration, Product, Search, SearchPaginator, SearchProduct, AdminTab
+from middlware.middlware import AdminCheckMiddleware
+from .admin_handlers import admin_router
+
 
 router = Router()
+admin_router.message.middleware(AdminCheckMiddleware())
 
 @router.message(CommandStart())
 async def process_start_command(message: Message, state: FSMContext):
@@ -22,8 +26,14 @@ async def process_start_command(message: Message, state: FSMContext):
         await message.answer(text='Привет! Я помогу тебе с анализом цены товара на Wildberries', reply_markup=keyboard)
 
 @router.message(Command(commands='help'))
+async def process_help_command(message: Message):
+    await message.answer(text='@Dantes8068')
+
+@admin_router.message(Command(commands='admin'))
 async def process_help_command(message: Message, state: FSMContext):
-    await message.answer(text='Помощи не будет')
+    await state.set_state(AdminTab.admin)
+    await message.answer(text='Выберите опцию', reply_markup=adm_keyboard)
+
 
 @router.message(F.text == 'Зарегистрироваться', StateFilter(Registration.not_logged))
 async def process_registartion(message: Message, state: FSMContext):

@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, Column, ForeignKeyConstraint, create_engine
-from sqlalchemy import String, Integer, Float, BigInteger
+from sqlalchemy import String, Integer, Float, BigInteger, Boolean, insert
 from sqlalchemy.orm import DeclarativeBase, Session, relationship
 from config_data.config import Config, load_config
 
@@ -12,6 +12,8 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String)
     user_id = Column(BigInteger, unique=True)
+    is_prime = Column(Boolean, default=False)
+    is_banned = Column(Boolean, default=False)
 
     def __repr__(self) -> str:
         return f"User(id={self.id!r}, username={self.username!r}, user_id={self.user_id!r})"
