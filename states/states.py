@@ -10,6 +10,9 @@ class SearchProduct(StatesGroup):
 class Product(StatesGroup):
     START = State()
 
+class FavouriteProducts(StatesGroup):
+    START = State()
+
 class Search(StatesGroup):
     START = State()
 

@@ -14,6 +14,7 @@ async def main():
     dp.include_router(admin_handlers.admin_router)
     dp.include_router(dialog.paginator)
     dp.include_router(dialog.product)
+    dp.include_router(dialog.favourite_list)
     dp.include_router(dialog.router)
     setup_dialogs(dp)
 

@@ -22,6 +22,7 @@ class Product(Base):
     __tablename__ = "product"
     id = Column(Integer, primary_key=True)
     product_id = Column(BigInteger, unique=True)
+    preview = Column(String)
     brand = Column(String)
     name = Column(String)
     reviewRating = Column(Float)
@@ -37,8 +38,8 @@ class Favourite(Base):
     id = Column(Integer, primary_key=True)
     product_id = Column(BigInteger, ForeignKey('product.product_id'))
     user_id = Column(BigInteger, ForeignKey('user.user_id'))
-    product = relationship(Product, cascade = "all,delete", backref = "children")
-    user = relationship(User, cascade = "all,delete", backref = "children")
+    product = relationship(Product, backref = "children")
+    user = relationship(User, backref = "children")
     
 
     def __repr__(self) -> str:

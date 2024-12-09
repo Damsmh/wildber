@@ -22,21 +22,18 @@ admin_exit = InlineKeyboardButton(text="Закрыть", callback_data=AdmCallba
 users = InlineKeyboardButton(text="Список пользователей", callback_data=AdmCallbackFactory(action="users", id=5).pack())
 
 
-reg_btn = KeyboardButton(text='Зарегистрироваться',
-                         callback_data='registration')
-logout_btn = KeyboardButton(text='Отказаться от подписки',
-                            callback_data='logout')
-query_search_btn = KeyboardButton(text='Искать товары',
-                            callback_data='get_search')
-article_search_btn = KeyboardButton(text='Поиск по артикулу',
-                            callback_data='get_article')
+reg_btn = KeyboardButton(text='Зарегистрироваться')
+logout_btn = KeyboardButton(text='Отказаться от подписки')
+query_search_btn = KeyboardButton(text='Искать товары')
+article_search_btn = KeyboardButton(text='Поиск по артикулу')
+liked_btn = KeyboardButton(text='Мои товары')
 
-logged_builder.row(logout_btn, query_search_btn, article_search_btn, width=3)
+logged_builder.row(logout_btn, query_search_btn, article_search_btn, liked_btn, width=4)
 Unlogged_builder.row(reg_btn, width=2)
 admin_builder.add(user_count)
 admin_builder.row(user_ban, user_unban, width=2)
 admin_builder.add(admin_exit)
-admin_builder.add(users)
+admin_builder.row(users)
 
 adm_keyboard: InlineKeyboardMarkup = admin_builder.as_markup(
     resize_keyboard=True,
