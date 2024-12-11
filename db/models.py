@@ -6,18 +6,6 @@ from config_data.config import Config, load_config
 class Base(DeclarativeBase):
     pass
 
-class User(Base):
-    __tablename__ = "user"
-
-    id = Column(Integer, primary_key=True)
-    username = Column(String)
-    user_id = Column(BigInteger, unique=True)
-    is_prime = Column(Boolean, default=False)
-    is_banned = Column(Boolean, default=False)
-
-    def __repr__(self) -> str:
-        return f"User(id={self.id!r}, username={self.username!r}, user_id={self.user_id!r})"
-
 class Product(Base):
     __tablename__ = "product"
     id = Column(Integer, primary_key=True)
@@ -38,12 +26,23 @@ class Favourite(Base):
     id = Column(Integer, primary_key=True)
     product_id = Column(BigInteger, ForeignKey('product.product_id'))
     user_id = Column(BigInteger, ForeignKey('user.user_id'))
-    product = relationship(Product, backref = "children")
-    user = relationship(User, backref = "children")
     
 
     def __repr__(self) -> str:
         return f"Favorite(id={self.id!r})"
+    
+class User(Base):
+    __tablename__ = "user"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String)
+    user_id = Column(BigInteger, unique=True)
+    is_prime = Column(Boolean, default=False)
+    is_banned = Column(Boolean, default=False)
+    favourite = relationship(Favourite, cascade='all, delete', backref = "children")
+
+    def __repr__(self) -> str:
+        return f"User(id={self.id!r}, username={self.username!r}, user_id={self.user_id!r})"
     
 config: Config = load_config()
 engine = create_engine(config.db_engine.url)

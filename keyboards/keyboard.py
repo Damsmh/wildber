@@ -4,7 +4,6 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.filters import callback_data, StateFilter
 from aiogram.fsm.context import FSMContext
 
-
 from states.states import Registration
 
 class AdmCallbackFactory(CallbackData, prefix='adm'):
@@ -14,6 +13,7 @@ class AdmCallbackFactory(CallbackData, prefix='adm'):
 logged_builder = ReplyKeyboardBuilder()
 Unlogged_builder = ReplyKeyboardBuilder()
 admin_builder = InlineKeyboardBuilder()
+shedule_builder = InlineKeyboardBuilder()
 
 user_count = InlineKeyboardButton(text="Кол-во пользователей", callback_data=AdmCallbackFactory(action="count", id=1).pack())
 user_ban = InlineKeyboardButton(text="Забанить", callback_data=AdmCallbackFactory(action="ban", id=2).pack())

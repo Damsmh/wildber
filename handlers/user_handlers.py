@@ -1,8 +1,7 @@
 from aiogram import Router, F
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
-from aiogram.filters import StateFilter
 from keyboards.keyboard import keyboard, keyboard_logged, adm_keyboard
 from db.functions import UserInBase, AddUser, DeleteUser, UserList
 from db.models import Product

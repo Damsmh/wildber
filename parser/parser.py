@@ -101,5 +101,6 @@ class Parser:
     def search_article(self, article):
         response = self.get_article_product(article)
         return self.format_article_item(response)
+
         
 

@@ -24,3 +24,6 @@ class AdminTab(StatesGroup):
     admin = State()
     ban = State()
     unban = State()
+
+class BuyPrime(StatesGroup):
+    buy = State()

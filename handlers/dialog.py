@@ -15,7 +15,9 @@ from parser.parser import Parser
 
 from states.states import SearchPaginator, Search, Registration, Product, SearchProduct, FavouriteProducts
 
-from db.functions import ProductInFavourite, ProductInBase, AddProduct, AddFavourite, DeleteFavourite, FavouriteList, FavouriteCount
+from db.functions import (ProductInFavourite, ProductInBase, 
+                         AddProduct, AddFavourite, DeleteFavourite, 
+                         FavouriteList, FavouriteCount, isPrime)
 
 parser = Parser()
 NEXT_page_BTN_ID = "next"
@@ -118,14 +120,28 @@ async def product_window(callback: CallbackQuery, button: Button, manager: Dialo
 async def add_fav(callback: CallbackQuery, button: Button, manager: DialogManager):
     uid = callback.from_user.id
     product = USER_DATA[uid]['product']
-    if await ProductInBase(product_id=product['id']):
-        try:
+    if await isPrime(uid):
+        if await ProductInBase(product_id=product['id']):
+            try:
+                await AddFavourite(user_id=uid, product_id=product['id'])
+            except:
+                print('fail to add fav!')
+        else:
+            await AddProduct(product=product)
             await AddFavourite(user_id=uid, product_id=product['id'])
-        except:
-            print('fail to add fav!')
     else:
-        await AddProduct(product=product)
-        await AddFavourite(user_id=uid, product_id=product['id'])
+        if await FavouriteCount(uid) < 5:
+            if await ProductInBase(product_id=product['id']):
+                try:
+                    await AddFavourite(user_id=uid, product_id=product['id'])
+                except:
+                    print('fail to add fav!')
+            else:
+                await AddProduct(product=product)
+                await AddFavourite(user_id=uid, product_id=product['id'])
+        else:
+            await callback.answer("Купите Prime, чтобы добавить больше товаров!")
+
 
 async def del_fav(callback: CallbackQuery, button: Button, manager: DialogManager):
     uid = callback.from_user.id

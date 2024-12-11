@@ -29,6 +29,9 @@ async def addPrime(username: str):
     session.query(User).filter(User.username == username).update({'is_prime': True}) 
     session.commit()
 
+async def isPrime(uid: str):
+    return session.query(User).filter(User.user_id == uid, User.is_prime == True).all() != []
+
 async def UserProductsCount(user_id: int):
     return session.query(Favourite).filter(Favourite.user_id == user_id).count()
 
@@ -81,5 +84,16 @@ def FavouriteList(user_id: int):
     result = session.execute(query)
     return result.scalars().all()
 
-def FavouriteCount(user_id: int):
+def FavouriteUser():
+    users = session.execute(select(Favourite.user_id)).all()
+    result = {}
+    for user in users:
+        result[user[0]] = FavouriteList(user[0])
+    return result
+
+async def UpdateProductPrice(product_id: int, price: int):
+    session.query(Product).filter(Product.product_id == product_id).update({'price': price}) 
+    session.commit()
+
+async def FavouriteCount(user_id: int):
     return session.query(Favourite.id).filter(Favourite.user_id == user_id).count()

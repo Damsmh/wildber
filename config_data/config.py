@@ -7,6 +7,7 @@ from environs import Env
 @dataclass
 class TgBot:
     token: str
+    provider_token: str
 
 @dataclass
 class Database:
@@ -29,6 +30,6 @@ def load_config(path: str | None = None) -> Config:
     env = Env()
     env.read_env(path)
     db_url = f"{env('DATABASE')}+{env('DB_DRIVER')}://{env('DB_USER')}:{env('DB_PSWD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
-    return Config(tg_bot=TgBot(token=env('BOT_TOKEN')),
+    return Config(tg_bot=TgBot(token=env('BOT_TOKEN'), provider_token=env('PROVIDER_TOKEN')),
                 db_engine=Database(url=db_url),
                 admin_ids=Admins(ids=[int(id) for id in env('ADMIN_IDS').split(',')]))
