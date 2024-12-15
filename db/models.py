@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, Column, ForeignKeyConstraint, create_engine
-from sqlalchemy import String, Integer, Float, BigInteger, Boolean, insert
+from sqlalchemy import String, Integer, Float, BigInteger, Boolean, insert, TIMESTAMP
 from sqlalchemy.orm import DeclarativeBase, Session, relationship
 from config_data.config import Config, load_config
 
@@ -43,6 +43,17 @@ class User(Base):
 
     def __repr__(self) -> str:
         return f"User(id={self.id!r}, username={self.username!r}, user_id={self.user_id!r})"
+    
+class Prices(Base):
+    __tablename__ = "prices"
+
+    id = Column(Integer, primary_key=True)
+    product_id = Column(BigInteger)
+    price = Column(Integer)
+    timestamp = Column(TIMESTAMP)
+
+    def __repr__(self) -> str:
+        return f"Prices(id={self.id!r}, product_id={self.product_id!r}, price={self.price!r}, timestamp={self.timestamp!r})"
     
 config: Config = load_config()
 engine = create_engine(config.db_engine.url)

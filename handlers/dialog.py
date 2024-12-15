@@ -1,13 +1,16 @@
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
 from aiogram.filters import StateFilter
-from aiogram.types import Message, CallbackQuery, ContentType
+from aiogram.types import Message, CallbackQuery, ContentType, BufferedInputFile, InputMediaPhoto
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.widgets.media import StaticMedia
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.kbd import Button, Row, Url, Back, Cancel, ListGroup
 from aiogram_dialog.widgets.common import Whenable
 from typing import *
+import os
+from tempfile import NamedTemporaryFile
+from pathlib import Path
 
 from handlers.user_handlers import USER_DATA
 
@@ -17,7 +20,9 @@ from states.states import SearchPaginator, Search, Registration, Product, Search
 
 from db.functions import (ProductInFavourite, ProductInBase, 
                          AddProduct, AddFavourite, DeleteFavourite, 
-                         FavouriteList, FavouriteCount, isPrime)
+                         FavouriteList, FavouriteCount, isPrime, get_price_history)
+
+from sheduler.sheduler import plot_price_history
 
 parser = Parser()
 NEXT_page_BTN_ID = "next"
@@ -117,6 +122,10 @@ async def product_window(callback: CallbackQuery, button: Button, manager: Dialo
     USER_DATA[user_id]['product'] = result
     await manager.start(SearchPaginator.PRODUCT)
 
+async def send_price_history(callback: CallbackQuery, button: Button, manager: DialogManager):
+    await manager.start(FavouriteProducts.graph)
+    
+
 async def add_fav(callback: CallbackQuery, button: Button, manager: DialogManager):
     uid = callback.from_user.id
     product = USER_DATA[uid]['product']
@@ -215,6 +224,14 @@ async def page_favourites(callback: CallbackQuery, button: Button, manager: Dial
     elif button.widget_id == PREVIOUS_page_BTN_ID and user_page > 1:
         USER_DATA[callback.from_user.id]['fv_page'] -= 1
 
+# async def page_vars(callback: CallbackQuery, button: Button, manager: DialogManager):
+#     count = USER_DATA[callback.from_user.id]['fv_count']
+#     user_page = USER_DATA[callback.from_user.id]['fv_page']
+#     if button.widget_id == NEXT_page_BTN_ID and user_page < count:
+#         USER_DATA[callback.from_user.id]['fv_page'] += 1
+#     elif button.widget_id == PREVIOUS_page_BTN_ID and user_page > 1:
+#         USER_DATA[callback.from_user.id]['fv_page'] -= 1
+
 async def page_select(callback: CallbackQuery, button: Button, manager: DialogManager):
     user_products = USER_DATA[callback.from_user.id]['products']
     user_page = USER_DATA[callback.from_user.id]['page']
@@ -222,6 +239,8 @@ async def page_select(callback: CallbackQuery, button: Button, manager: DialogMa
         USER_DATA[callback.from_user.id]['page'] += 1
     elif button.widget_id == PREVIOUS_page_BTN_ID and user_page > 1:
         USER_DATA[callback.from_user.id]['page'] -= 1
+
+
 
 async def search_getter(**kwargs):
     user_id = kwargs['event_from_user'].id
@@ -274,6 +293,19 @@ async def favourite_getter(**kwargs):
             'rating': product.reviewRating,
             'user_id': user_id,
             }
+
+async def graph_getter(dialog_manager: DialogManager, **kwargs):
+    user_id = kwargs['event_from_user'].id
+    page = USER_DATA[user_id]['fv_page']
+    product = USER_DATA[user_id]['favourite'][page-1]
+    price_data = get_price_history(product.product_id)
+    buf = plot_price_history(product.product_id, price_data)
+    temp_file = NamedTemporaryFile(delete=False, suffix=".png")
+    temp_file.write(buf.read())
+    temp_file.close()
+    buf.close()
+    dialog_manager.dialog_data['graph_path'] = temp_file.name
+    return {'graph': Path(temp_file.name)}
 
 paginator = Dialog(
     Window(
@@ -338,9 +370,7 @@ paginator = Dialog(
 Отзывов: {feedbacks}      Цена: {price} Р'''
         ),
         Row(
-            Back(
-                Const('Назад'),
-            ),
+            Cancel(Const("Назад")),
             Button(
                 Const('Отслеживать'),
                 id='add_fav',
@@ -356,7 +386,7 @@ paginator = Dialog(
         ),
         state=SearchPaginator.PRODUCT,
         getter=product_getter
-    )
+    ),
 )
 
 product = Dialog (
@@ -420,7 +450,7 @@ favourite_list = Dialog (
             url=Format('{link}'),
             id='link'
         ),
-         Button(
+        Button(
             Const('Отслеживать'),
             id='add_fav',
             when=not_in_fav,
@@ -432,8 +462,24 @@ favourite_list = Dialog (
             when=in_fav,
             on_click=del_fav_infav,
         ),
+        Row(
+            Button(
+                Const("График цен"),
+                id='graph',
+                on_click=send_price_history,
+            ),
+        ),
         Cancel(Const("Закрыть")),
         state=FavouriteProducts.START,
         getter=favourite_getter
-    )
+    ),
+    Window(
+        StaticMedia(
+            path=Format('{graph}'),
+            type=ContentType.PHOTO,
+        ),
+        Cancel(Const("Закрыть")),
+        state=FavouriteProducts.graph,
+        getter=graph_getter
+    ),
 )

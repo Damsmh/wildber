@@ -1,5 +1,6 @@
-from .models import User, Product, Favourite, session
-from sqlalchemy import select
+from .models import User, Product, Favourite, Prices, session
+from sqlalchemy import select, insert
+from datetime import datetime
 
 async def UserInBase(TG: int):
     return session.query(User.id).filter(User.user_id == TG).all() != []
@@ -97,3 +98,19 @@ async def UpdateProductPrice(product_id: int, price: int):
 
 async def FavouriteCount(user_id: int):
     return session.query(Favourite.id).filter(Favourite.user_id == user_id).count()
+
+async def update_price_history(article, current_price):
+    query = insert(Prices).values(
+        product_id=article,
+        price=current_price,
+        timestamp=datetime.now()
+    )
+    await session.execute(query)
+    await session.commit()
+def get_price_history(article):
+    query = (
+        session.query(Prices)
+        .filter(Prices.product_id == article)
+        .order_by(Prices.timestamp.asc())
+    )
+    return session.execute(query).scalars().all()

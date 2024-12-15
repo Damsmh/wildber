@@ -5,12 +5,12 @@ from config_data.config import Config, load_config
 from handlers import user_handlers, dialog, admin_handlers, other_handlers
 from aiogram.types import BotCommand
 from sheduler.sheduler import checkPrice
-import time
+
 
 async def periodic_check_price():
     while True:
         await checkPrice()
-        await asyncio.sleep(10)
+        await asyncio.sleep(20)
 
 async def start_bot():
     config: Config = load_config()

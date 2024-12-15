@@ -12,6 +12,7 @@ class Product(StatesGroup):
 
 class FavouriteProducts(StatesGroup):
     START = State()
+    graph = State()
 
 class Search(StatesGroup):
     START = State()
